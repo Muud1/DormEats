@@ -1,0 +1,79 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String
+  dorm            String
+  venmoUsername   String?
+  trustScore      Int      @default(0)
+  createdAt       DateTime @default(now())
+
+  createdOrders   Order[]  @relation("CreatedOrders")
+  participations  OrderParticipant[]
+  messages        Message[]
+}
+
+model Order {
+  id              String      @id @default(cuid())
+  creatorId       String
+  creator         User        @relation("CreatedOrders", fields: [creatorId], references: [id])
+
+  restaurant      String
+  dorm            String
+  description     String?
+  joinDeadline    DateTime
+  deliveryTime    DateTime
+  status          OrderStatus @default(OPEN)
+  maxParticipants Int
+
+  createdAt       DateTime    @default(now())
+
+  participants    OrderParticipant[]
+  messages        Message[]
+}
+
+model OrderParticipant {
+  id        String            @id @default(cuid())
+  orderId   String
+  userId    String
+  status    ParticipantStatus @default(JOINED)
+  createdAt DateTime          @default(now())
+
+  order     Order @relation(fields: [orderId], references: [id])
+  user      User  @relation(fields: [userId], references: [id])
+
+  @@unique([orderId, userId])
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  orderId   String
+  senderId  String
+  content   String
+  createdAt DateTime @default(now())
+
+  order     Order @relation(fields: [orderId], references: [id])
+  sender    User  @relation(fields: [senderId], references: [id])
+}
+
+enum OrderStatus {
+  OPEN
+  LOCKED
+  ORDERED
+  DELIVERED
+  CANCELLED
+}
+
+enum ParticipantStatus {
+  JOINED
+  COMPLETED
+  NO_SHOW
+}
